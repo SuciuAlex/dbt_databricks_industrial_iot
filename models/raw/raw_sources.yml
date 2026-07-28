@@ -1,0 +1,30 @@
+version: 2
+
+# NOTE: this project has no external `source()`s — the raw layer IS the
+# seeds under seeds/ (raw_machines, raw_event_types, raw_error_codes,
+# raw_device_events), which downstream models reference via ref() like any
+# other node. Per-seed column docs and generic tests live alongside the CSVs
+# in seeds/seeds_properties.yml (a resource can only be documented/patched
+# once across the project). This file instead adds an exposure that ties the
+# four seeds together as the "raw layer" in the dbt docs lineage graph, so
+# the raw → bronze → silver → gold DAG has an explicit entry point.
+
+exposures:
+  - name: raw_layer_seed_ingestion
+    label: "Raw Layer - Seed-Backed Ingestion"
+    type: application
+    maturity: high
+    description: >
+      Represents the simulated IoT gateway ingestion process that lands
+      machine telemetry as the four raw seeds. In production this would be
+      an external ingestion pipeline (source system); in this demo it is
+      reproduced deterministically by scripts/generate_synthetic_data.py
+      and loaded via `dbt seed`.
+    depends_on:
+      - ref('raw_machines')
+      - ref('raw_event_types')
+      - ref('raw_error_codes')
+      - ref('raw_device_events')
+    owner:
+      name: Data Engineering
+      email: data-engineering@gea-telemetry-demo.example

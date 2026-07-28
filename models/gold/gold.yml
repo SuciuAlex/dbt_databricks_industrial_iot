@@ -1,0 +1,182 @@
+version: 2
+
+models:
+  - name: dim_machine_status
+    description: >
+      Active-row (is_current = true) slice of silver_dim_machines, joined
+      with each machine's latest sensor reading. See
+      dim_machine_status_history for the full trail.
+    columns:
+      - name: machine_id
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_machine_status_history
+    description: >
+      Full historical SCD2 trail from silver_dim_machines (all
+      valid_from/valid_to versions), for "status as of time T" lookups.
+    columns:
+      - name: machine_sk
+        tests:
+          - unique
+          - not_null
+      - name: machine_id
+        tests:
+          - not_null
+
+  - name: agg_machine_uptime_daily
+    description: >
+      Daily %RUNNING vs %STOPPED/MAINTENANCE/ERROR per machine, computed by
+      overlapping silver_dim_machines SCD2 intervals against a calendar-day
+      spine.
+    columns:
+      - name: machine_id
+        tests:
+          - not_null
+      - name: event_date
+        tests:
+          - not_null
+      - name: pct_running
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+              row_condition: "pct_running is not null"
+      - name: pct_down
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+              row_condition: "pct_down is not null"
+      - name: pct_idle
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+              row_condition: "pct_idle is not null"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - machine_id
+            - event_date
+
+  - name: agg_machine_type_performance
+    description: Average temperature/speed/vibration by machine_type and day, from silver_fact_device_events.
+    columns:
+      - name: machine_type
+        tests:
+          - not_null
+      - name: event_date
+        tests:
+          - not_null
+
+  - name: agg_error_analysis
+    description: Error frequency, mean resolution time, and severity mix by machine_type, from silver_fact_error_events.
+    columns:
+      - name: machine_type
+        tests:
+          - not_null
+      - name: severity
+        tests:
+          - accepted_values:
+              values: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+
+  - name: agg_production_output
+    description: Daily product counts and cycle counts/durations per machine, from silver_fact_device_events.
+    columns:
+      - name: machine_id
+        tests:
+          - not_null
+      - name: event_date
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - machine_id
+            - event_date
+
+  - name: agg_event_frequency_minute
+    description: >
+      Minute-grain event frequency, one row per machine_id +
+      event_type_code + bucket_start. Watermark-driven incremental read via
+      silver_tec_watermark; post-hooks advance the watermark and log the
+      batch to silver_tec_batch_execution_log (section 4.5/4.6).
+    columns:
+      - name: machine_id
+        tests:
+          - not_null
+      - name: event_type_code
+        tests:
+          - not_null
+      - name: bucket_start
+        tests:
+          - not_null
+      - name: event_count
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - machine_id
+            - event_type_code
+            - bucket_start
+
+  - name: agg_event_frequency_hour
+    description: >
+      Hour-grain event frequency, one row per machine_id +
+      event_type_code + bucket_start. Watermark-driven incremental read via
+      silver_tec_watermark; post-hooks advance the watermark and log the
+      batch to silver_tec_batch_execution_log (section 4.5/4.6).
+    columns:
+      - name: machine_id
+        tests:
+          - not_null
+      - name: event_type_code
+        tests:
+          - not_null
+      - name: bucket_start
+        tests:
+          - not_null
+      - name: event_count
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - machine_id
+            - event_type_code
+            - bucket_start
+
+  - name: agg_event_frequency_day
+    description: >
+      Day-grain event frequency, one row per machine_id +
+      event_type_code + bucket_start. Watermark-driven incremental read via
+      silver_tec_watermark; post-hooks advance the watermark and log the
+      batch to silver_tec_batch_execution_log (section 4.5/4.6).
+    columns:
+      - name: machine_id
+        tests:
+          - not_null
+      - name: event_type_code
+        tests:
+          - not_null
+      - name: bucket_start
+        tests:
+          - not_null
+      - name: event_count
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - machine_id
+            - event_type_code
+            - bucket_start

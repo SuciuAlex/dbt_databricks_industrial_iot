@@ -1,0 +1,21 @@
+machine_id,machine_type,model_name,manufacturer,plant_location,plant_country,install_date,rated_capacity,capacity_unit,initial_firmware_version
+SLC-001,SLICER,CutMaster 3000,GEA Group,Bologna,Italy,2024-11-14,141.4,kg/min,v4.4.18
+SLC-002,SLICER,CutMaster Pro,GEA Group,Chicago,USA,2024-11-25,93.2,kg/min,v3.5.20
+SLC-003,SLICER,SlicePro X2,GEA Group,Sao Paulo,Brazil,2018-11-08,190.0,kg/min,v4.5.2
+SLC-004,SLICER,CutMaster 3000,GEA Group,Melbourne,Australia,2017-11-19,131.9,kg/min,v2.1.19
+SLC-005,SLICER,CutMaster Pro,GEA Group,Shanghai,China,2018-06-05,195.2,kg/min,v3.5.9
+CKR-001,COOKER,ThermoCook 500,GEA Group,Cologne,Germany,2021-07-05,532.8,liters/batch,v1.8.1
+CKR-002,COOKER,CookMaster Elite,GEA Group,Bologna,Italy,2017-09-17,579.0,liters/batch,v4.1.15
+CKR-003,COOKER,ThermoCook XL,GEA Group,Chicago,USA,2019-03-08,782.4,liters/batch,v2.4.18
+CKR-004,COOKER,ThermoCook 500,GEA Group,Sao Paulo,Brazil,2019-05-24,316.8,liters/batch,v4.3.9
+CKR-005,COOKER,CookMaster Elite,GEA Group,Melbourne,Australia,2021-01-25,292.6,liters/batch,v1.7.14
+BKR-001,BAKER,BakeMaster 200,GEA Group,Shanghai,China,2017-02-11,1951.3,units/hour,v3.4.6
+BKR-002,BAKER,OvenPro Industrial,GEA Group,Cologne,Germany,2017-04-10,1204.3,units/hour,v2.7.3
+BKR-003,BAKER,BakeMaster XL,GEA Group,Bologna,Italy,2021-05-24,1213.6,units/hour,v1.3.4
+BKR-004,BAKER,BakeMaster 200,GEA Group,Chicago,USA,2020-06-12,1155.7,units/hour,v3.1.17
+BKR-005,BAKER,OvenPro Industrial,GEA Group,Sao Paulo,Brazil,2019-11-03,968.5,units/hour,v3.7.17
+PKR-001,PACKER,PackLine 400,GEA Group,Melbourne,Australia,2021-08-26,106.5,units/min,v4.8.6
+PKR-002,PACKER,SealPro Auto,GEA Group,Shanghai,China,2023-06-22,76.8,units/min,v3.8.4
+PKR-003,PACKER,PackLine XL,GEA Group,Cologne,Germany,2018-03-18,154.4,units/min,v1.7.13
+PKR-004,PACKER,PackLine 400,GEA Group,Bologna,Italy,2021-04-24,153.7,units/min,v3.5.9
+PKR-005,PACKER,SealPro Auto,GEA Group,Chicago,USA,2020-12-29,76.8,units/min,v3.2.2

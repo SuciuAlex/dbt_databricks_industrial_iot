@@ -1,0 +1,24 @@
+checks for silver_fact_device_events:
+  - row_count > 0
+  - duplicate_count(event_id) = 0
+
+  - failed rows:
+      name: event_value populated for sensor/count event types
+      fail query: |
+        select event_id
+        from silver_fact_device_events
+        where event_type_code in (
+            'SENSOR_TEMPERATURE_READING',
+            'SENSOR_SPEED_READING',
+            'SENSOR_VIBRATION_READING',
+            'PRODUCT_COUNT_UPDATE',
+            'CYCLE_COMPLETE'
+        )
+        and event_value is null
+
+  - failed rows:
+      name: no future-dated event_timestamp
+      fail query: |
+        select event_id
+        from silver_fact_device_events
+        where event_timestamp > current_timestamp()

@@ -1,0 +1,24 @@
+# SODA Core data source configuration for the GEA telemetry demo.
+#
+# Points at the same Databricks (Unity Catalog) workspace as the dbt
+# profile (see profiles.yml.example), reusing the same environment
+# variable names so one .env can drive both dbt and SODA:
+#   DBT_DATABRICKS_HOST       e.g. adb-1234567890123456.7.azuredatabricks.net
+#   DBT_DATABRICKS_HTTP_PATH  e.g. /sql/1.0/warehouses/xxxxxxxxxxxxxxxx
+#   DBT_DATABRICKS_TOKEN      a Databricks personal access token
+#
+# Never hardcode credentials here — this file is safe to commit as-is.
+
+data_source gea_demo:
+  type: spark
+  method: odbc
+  # Path to the Databricks/Simba ODBC driver installed on the machine
+  # running the scan. Override via the SODA_ODBC_DRIVER env var if your
+  # driver lives somewhere else.
+  driver: ${SODA_ODBC_DRIVER}
+  host: ${DBT_DATABRICKS_HOST}
+  http_path: ${DBT_DATABRICKS_HTTP_PATH}
+  token: ${DBT_DATABRICKS_TOKEN}
+  catalog: gea_demo
+  schema: silver
+  port: 443

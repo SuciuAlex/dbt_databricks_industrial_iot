@@ -1,0 +1,26 @@
+# Copy this file to ~/.dbt/profiles.yml (or set DBT_PROFILES_DIR) and fill in
+# your own Databricks workspace details. Never commit real tokens.
+#
+# All values below are sourced from environment variables so this file is
+# safe to keep in version control as-is.
+
+gea_telemetry:
+  target: dev
+  outputs:
+    dev:
+      type: databricks
+      catalog: gea_demo
+      schema: dev   # overridden per-layer via generate_schema_name.sql
+      host: "{{ env_var('DBT_DATABRICKS_HOST') }}"
+      http_path: "{{ env_var('DBT_DATABRICKS_HTTP_PATH') }}"
+      token: "{{ env_var('DBT_DATABRICKS_TOKEN') }}"
+      threads: 8
+
+    ci:
+      type: databricks
+      catalog: gea_demo
+      schema: ci
+      host: "{{ env_var('DBT_DATABRICKS_HOST') }}"
+      http_path: "{{ env_var('DBT_DATABRICKS_HTTP_PATH') }}"
+      token: "{{ env_var('DBT_DATABRICKS_TOKEN') }}"
+      threads: 4

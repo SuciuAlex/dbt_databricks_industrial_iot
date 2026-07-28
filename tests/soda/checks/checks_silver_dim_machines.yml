@@ -1,0 +1,31 @@
+checks for silver_dim_machines:
+  - row_count > 0
+  - duplicate_count(machine_sk) = 0
+
+  - failed rows:
+      name: valid_from freshness within the synthetic 3-month window
+      fail query: |
+        select machine_sk
+        from silver_dim_machines
+        where valid_from < timestamp('2026-04-01')
+           or valid_from > timestamp('2026-07-01')
+
+  - failed rows:
+      name: no overlapping SCD2 periods per machine_id
+      fail query: |
+        select a.machine_id
+        from silver_dim_machines a
+        inner join silver_dim_machines b
+            on a.machine_id = b.machine_id
+           and a.machine_sk != b.machine_sk
+        where b.valid_from >= a.valid_from
+          and b.valid_from < coalesce(a.valid_to, timestamp('9999-12-31'))
+
+  - failed rows:
+      name: exactly one is_current row per machine_id
+      fail query: |
+        select machine_id
+        from silver_dim_machines
+        where is_current = true
+        group by machine_id
+        having count(*) != 1

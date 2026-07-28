@@ -1,0 +1,11 @@
+event_type_code,event_category,description,has_numeric_payload
+STATUS_CHANGE,lifecycle,"Machine transitions between RUNNING, IDLE, STOPPED, MAINTENANCE, ERROR",False
+CYCLE_START,production,A production/process cycle begins,False
+CYCLE_COMPLETE,production,"A production/process cycle ends, with cycle duration",True
+SENSOR_TEMPERATURE_READING,telemetry,Core temperature reading (deg C),True
+SENSOR_SPEED_READING,telemetry,Line/blade speed (units/min),True
+SENSOR_VIBRATION_READING,telemetry,Vibration amplitude (mm/s),True
+PRODUCT_COUNT_UPDATE,production,Running output counter increment,True
+ERROR_RAISED,fault,"Fault raised, references error_code",False
+ERROR_RESOLVED,fault,"Fault cleared, references error_code",False
+MAINTENANCE_ALERT,maintenance,Preventive/predictive maintenance flag,False

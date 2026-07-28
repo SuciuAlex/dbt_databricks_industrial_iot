@@ -1,0 +1,19 @@
+error_code,severity,description,requires_maintenance
+E-101,HIGH,Blade misalignment,True
+E-110,MEDIUM,Blade dull/worn,True
+E-120,HIGH,Cutting motor overload,True
+E-204,MEDIUM,Oven temperature deviation,False
+E-210,HIGH,Oven ignition failure,True
+E-220,CRITICAL,Heating element failure,True
+E-310,MEDIUM,Conveyor jam,False
+E-320,HIGH,Conveyor motor fault,True
+E-330,LOW,Conveyor belt slippage,False
+E-401,LOW,Sensor calibration drift,False
+E-410,MEDIUM,Sensor communication loss,True
+E-450,MEDIUM,Packaging seal failure,False
+E-460,LOW,Packaging film jam,False
+E-470,LOW,Label applicator fault,False
+E-500,CRITICAL,Emergency stop triggered,True
+E-510,HIGH,Power supply fluctuation,True
+E-520,HIGH,Hydraulic pressure loss,True
+E-600,LOW,Software watchdog reset,False
