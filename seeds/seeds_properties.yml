@@ -2,116 +2,99 @@ version: 2
 
 seeds:
   - name: raw_machines
-    description: >
-      Raw dimension seed: one row per physical GEA machine in the fleet (20
-      machines across 4 process areas). This is the raw layer for the
-      demo — loaded via `dbt seed` and referenced downstream exclusively
-      through `ref('raw_machines')`.
+    description: "{{ doc('column_raw_machines') }}"
     columns:
       - name: machine_id
-        description: Natural key, pattern `<TYPE_PREFIX>-<3-digit sequence>` (e.g. `SLC-001`).
+        description: "{{ doc('column_machine_id') }}"
         tests:
           - unique
           - not_null
       - name: machine_type
-        description: One of the four GEA process areas.
+        description: "{{ doc('column_machine_type') }}"
         tests:
           - accepted_values:
               values: ['SLICER', 'COOKER', 'BAKER', 'PACKER']
       - name: model_name
-        description: Commercial model name of the machine.
+        description: "{{ doc('column_model_name') }}"
       - name: manufacturer
-        description: Always "GEA Group" for this fleet.
+        description: "{{ doc('column_manufacturer') }}"
       - name: plant_location
-        description: City where the machine is installed.
+        description: "{{ doc('column_plant_location') }}"
       - name: plant_country
-        description: Country where the machine is installed.
+        description: "{{ doc('column_plant_country') }}"
       - name: install_date
-        description: Date the machine was commissioned at its plant.
+        description: "{{ doc('column_install_date') }}"
       - name: rated_capacity
-        description: Manufacturer-rated throughput capacity, in `capacity_unit`.
+        description: "{{ doc('column_rated_capacity') }}"
       - name: capacity_unit
-        description: Unit for `rated_capacity`, varies by `machine_type`.
+        description: "{{ doc('column_capacity_unit') }}"
       - name: initial_firmware_version
-        description: Firmware version installed at commissioning time.
+        description: "{{ doc('column_initial_firmware_version') }}"
 
   - name: raw_event_types
-    description: >
-      Raw dimension seed: the shared event-type catalog emitted by every
-      machine's IoT gateway, regardless of machine type (payload columns are
-      simply NULL where not applicable to a given event).
+    description: "{{ doc('column_raw_event_types') }}"
     columns:
       - name: event_type_code
-        description: Natural key for the event type (e.g. `STATUS_CHANGE`, `SENSOR_TEMPERATURE_READING`).
+        description: "{{ doc('column_event_type_code') }}"
         tests:
           - unique
           - not_null
       - name: event_category
-        description: High-level grouping of the event type.
+        description: "{{ doc('column_event_category') }}"
         tests:
           - accepted_values:
               values: ['lifecycle', 'production', 'telemetry', 'fault', 'maintenance']
       - name: description
-        description: Human-readable description of what the event represents.
+        description: "{{ doc('column_description') }}"
       - name: has_numeric_payload
-        description: Whether this event type carries a meaningful numeric payload value.
+        description: "{{ doc('column_has_numeric_payload') }}"
 
   - name: raw_error_codes
-    description: >
-      Raw dimension seed: fault/error reference catalog referenced by
-      `ERROR_RAISED` / `ERROR_RESOLVED` device events.
+    description: "{{ doc('column_raw_error_codes') }}"
     columns:
       - name: error_code
-        description: Natural key for the error code (e.g. `E-101`).
+        description: "{{ doc('column_error_code') }}"
         tests:
           - unique
           - not_null
       - name: severity
-        description: Severity classification of the fault.
+        description: "{{ doc('column_severity') }}"
         tests:
           - accepted_values:
               values: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
       - name: description
-        description: Human-readable description of the fault condition.
+        description: "{{ doc('column_description') }}"
       - name: requires_maintenance
-        description: Whether this fault typically requires a maintenance intervention to clear.
+        description: "{{ doc('column_requires_maintenance') }}"
 
   - name: raw_device_events
-    description: >
-      Raw fact seed: one row per event emitted by a machine's IoT gateway
-      over a 3-month synthetic window (~800k rows). This seed intentionally
-      contains a small amount of data-quality noise — a handful of
-      duplicate `event_id`s and a few rows with a null `machine_id` — which
-      `bronze_device_events` is responsible for cleaning up. No generic
-      tests are applied at this layer for that reason; the bronze layer's
-      `unique`/`not_null` tests are what demonstrate the cleanup actually
-      working.
+    description: "{{ doc('column_raw_device_events') }}"
     columns:
       - name: event_id
-        description: UUID assigned to the event by the simulated gateway. Not guaranteed unique in this raw seed (see above).
+        description: "{{ doc('column_event_id') }}"
       - name: machine_id
-        description: FK to `raw_machines.machine_id`. A few rows are intentionally null in this raw seed.
+        description: "{{ doc('column_machine_id') }}"
       - name: machine_type
-        description: Denormalized copy of the emitting machine's type.
+        description: "{{ doc('column_machine_type') }}"
       - name: event_type_code
-        description: FK to `raw_event_types.event_type_code`.
+        description: "{{ doc('column_event_type_code') }}"
       - name: event_timestamp
-        description: UTC timestamp the event occurred, within the 2026-04-01 to 2026-06-30 window.
+        description: "{{ doc('column_event_timestamp') }}"
       - name: event_date
-        description: Date part of `event_timestamp`, provided for partition-friendly filtering.
+        description: "{{ doc('column_event_date') }}"
       - name: status_value
-        description: Populated only for `STATUS_CHANGE` events.
+        description: "{{ doc('column_status_value') }}"
       - name: temperature_c
-        description: Populated only for `SENSOR_TEMPERATURE_READING` events.
+        description: "{{ doc('column_temperature_c') }}"
       - name: speed_units_per_min
-        description: Populated only for `SENSOR_SPEED_READING` events.
+        description: "{{ doc('column_speed_units_per_min') }}"
       - name: vibration_mm_s
-        description: Populated only for `SENSOR_VIBRATION_READING` events.
+        description: "{{ doc('column_vibration_mm_s') }}"
       - name: product_count
-        description: Populated for `PRODUCT_COUNT_UPDATE` and `CYCLE_COMPLETE` events.
+        description: "{{ doc('column_product_count') }}"
       - name: cycle_duration_seconds
-        description: Populated only for `CYCLE_COMPLETE` events.
+        description: "{{ doc('column_cycle_duration_seconds') }}"
       - name: error_code
-        description: FK to `raw_error_codes.error_code`, populated only for `ERROR_RAISED` / `ERROR_RESOLVED` events.
+        description: "{{ doc('column_error_code') }}"
       - name: source_ingested_at
-        description: Simulated ingestion timestamp (`event_timestamp` plus a small random lag).
+        description: "{{ doc('column_source_ingested_at') }}"

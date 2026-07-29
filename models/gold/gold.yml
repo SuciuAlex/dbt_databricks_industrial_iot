@@ -2,10 +2,7 @@ version: 2
 
 models:
   - name: dim_machine_status
-    description: >
-      Active-row (is_current = true) slice of silver_dim_machines, joined
-      with each machine's latest sensor reading. See
-      dim_machine_status_history for the full trail.
+    description: "{{ doc('column_dim_machine_status') }}"
     columns:
       - name: machine_id
         tests:
@@ -13,9 +10,7 @@ models:
           - not_null
 
   - name: dim_machine_status_history
-    description: >
-      Full historical SCD2 trail from silver_dim_machines (all
-      valid_from/valid_to versions), for "status as of time T" lookups.
+    description: "{{ doc('column_dim_machine_status_history') }}"
     columns:
       - name: machine_sk
         tests:
@@ -26,10 +21,7 @@ models:
           - not_null
 
   - name: agg_machine_uptime_daily
-    description: >
-      Daily %RUNNING vs %STOPPED/MAINTENANCE/ERROR per machine, computed by
-      overlapping silver_dim_machines SCD2 intervals against a calendar-day
-      spine.
+    description: "{{ doc('column_agg_machine_uptime_daily') }}"
     columns:
       - name: machine_id
         tests:
@@ -62,7 +54,7 @@ models:
             - event_date
 
   - name: agg_machine_type_performance
-    description: Average temperature/speed/vibration by machine_type and day, from silver_fact_device_events.
+    description: "{{ doc('column_agg_machine_type_performance') }}"
     columns:
       - name: machine_type
         tests:
@@ -72,7 +64,7 @@ models:
           - not_null
 
   - name: agg_error_analysis
-    description: Error frequency, mean resolution time, and severity mix by machine_type, from silver_fact_error_events.
+    description: "{{ doc('column_agg_error_analysis') }}"
     columns:
       - name: machine_type
         tests:
@@ -83,7 +75,7 @@ models:
               values: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
 
   - name: agg_production_output
-    description: Daily product counts and cycle counts/durations per machine, from silver_fact_device_events.
+    description: "{{ doc('column_agg_production_output') }}"
     columns:
       - name: machine_id
         tests:
@@ -98,11 +90,7 @@ models:
             - event_date
 
   - name: agg_event_frequency_minute
-    description: >
-      Minute-grain event frequency, one row per machine_id +
-      event_type_code + bucket_start. Watermark-driven incremental read via
-      silver_tec_watermark; post-hooks advance the watermark and log the
-      batch to silver_tec_batch_execution_log (section 4.5/4.6).
+    description: "{{ doc('column_agg_event_frequency_minute') }}"
     columns:
       - name: machine_id
         tests:
@@ -126,11 +114,7 @@ models:
             - bucket_start
 
   - name: agg_event_frequency_hour
-    description: >
-      Hour-grain event frequency, one row per machine_id +
-      event_type_code + bucket_start. Watermark-driven incremental read via
-      silver_tec_watermark; post-hooks advance the watermark and log the
-      batch to silver_tec_batch_execution_log (section 4.5/4.6).
+    description: "{{ doc('column_agg_event_frequency_hour') }}"
     columns:
       - name: machine_id
         tests:
@@ -154,11 +138,7 @@ models:
             - bucket_start
 
   - name: agg_event_frequency_day
-    description: >
-      Day-grain event frequency, one row per machine_id +
-      event_type_code + bucket_start. Watermark-driven incremental read via
-      silver_tec_watermark; post-hooks advance the watermark and log the
-      batch to silver_tec_batch_execution_log (section 4.5/4.6).
+    description: "{{ doc('column_agg_event_frequency_day') }}"
     columns:
       - name: machine_id
         tests:

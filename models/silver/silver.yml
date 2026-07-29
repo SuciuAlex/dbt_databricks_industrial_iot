@@ -2,16 +2,10 @@ version: 2
 
 models:
   - name: silver_dim_machines
-    description: >
-      SCD Type 2 dimension: one row per machine per status-attribute
-      version. Built from `bronze_machines` joined with `STATUS_CHANGE`
-      events from `bronze_device_events`; `valid_from`/`valid_to` derived
-      with a `lead()` window per `machine_id`. This is the canonical table
-      other models join to for "status as of time T" or "current status"
-      lookups.
+    description: "{{ doc('column_silver_dim_machines') }}"
     columns:
       - name: machine_sk
-        description: Surrogate key, `generate_surrogate_key(['machine_id', 'valid_from'])`.
+        description: "{{ doc('column_machine_sk') }}"
         tests:
           - unique
           - not_null
@@ -21,19 +15,16 @@ models:
               to: ref('bronze_machines')
               field: machine_id
       - name: valid_from
-        description: Timestamp this version of the machine's status became effective.
+        description: "{{ doc('column_valid_from') }}"
         tests:
           - not_null
       - name: valid_to
-        description: Timestamp this version stopped being effective; null for the current version.
+        description: "{{ doc('column_valid_to') }}"
       - name: is_current
-        description: True when `valid_to` is null (the currently-active row for this machine).
+        description: "{{ doc('column_is_current') }}"
 
   - name: silver_fact_device_events
-    description: >
-      Conformed, business-ready event fact — one row per device event, with
-      machine/event-type attributes joined in and a generic `event_value`
-      column populated from whichever type-specific payload column applies.
+    description: "{{ doc('column_silver_fact_device_events') }}"
     columns:
       - name: event_id
         tests:
@@ -45,16 +36,9 @@ models:
               to: ref('silver_dim_machines')
               field: machine_id
       - name: event_value
-        description: >
-          Type-specific numeric payload normalized into one column (temperature
-          for sensor-temperature events, speed for sensor-speed events, etc.);
-          null for event types with no natural numeric payload.
-
+        description: "{{ doc('column_event_value') }}"
   - name: silver_fact_error_events
-    description: >
-      Derived from `silver_fact_device_events`: pairs `ERROR_RAISED` ->
-      `ERROR_RESOLVED` per `machine_id` + `error_code`, computing
-      `resolution_time_seconds`, joined to `bronze_error_codes` for severity.
+    description: "{{ doc('column_silver_fact_error_events') }}"
     columns:
       - name: machine_id
         tests:
@@ -69,15 +53,12 @@ models:
         tests:
           - not_null
       - name: resolved_at
-        description: Timestamp the paired ERROR_RESOLVED event occurred.
+        description: "{{ doc('column_resolved_at') }}"
       - name: resolution_time_seconds
-        description: Seconds between raised_at and resolved_at.
+        description: "{{ doc('column_resolution_time_seconds') }}"
 
   - name: silver_tec_watermark
-    description: >
-      Technical control table (not business-facing): one row per
-      machine_id + event_type_code holding last_processed_event_timestamp,
-      consumed and advanced by the agg_event_frequency_* gold models.
+    description: "{{ doc('column_silver_tec_watermark') }}"
     columns:
       - name: last_processed_event_timestamp
         tests:
@@ -89,10 +70,7 @@ models:
             - event_type_code
 
   - name: silver_tec_kpi_mapping
-    description: >
-      Technical control table (not business-facing): maps every
-      machine_id + event_type_code combination to a kpi_code, defaulting to
-      'all' as a placeholder until specific KPIs are defined.
+    description: "{{ doc('column_silver_tec_kpi_mapping') }}"
     columns:
       - name: kpi_code
         tests:
@@ -107,11 +85,7 @@ models:
             - kpi_code
 
   - name: silver_tec_batch_execution_log
-    description: >
-      Technical control table (not business-facing): one row per batch run
-      of a watermark-driven model, written entirely via the
-      log_batch_execution() post-hook macro — this model's own defining
-      query always returns zero rows.
+    description: "{{ doc('column_silver_tec_batch_execution_log') }}"
     columns:
       - name: run_started_at
         tests:

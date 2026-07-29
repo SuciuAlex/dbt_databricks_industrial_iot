@@ -2,12 +2,10 @@ version: 2
 
 models:
   - name: bronze_machines
-    description: >
-      Incremental (merge) cleanup of `raw_machines`: light typing, drops any
-      row with a null `machine_id`. One row per machine.
+    description: "{{ doc('column_bronze_machines') }}"
     columns:
       - name: machine_id
-        description: Natural key, FK target for downstream models.
+        description: "{{ doc('column_machine_id') }}"
         tests:
           - unique
           - not_null
@@ -17,23 +15,19 @@ models:
               values: ['SLICER', 'COOKER', 'BAKER', 'PACKER']
 
   - name: bronze_event_types
-    description: >
-      Incremental (merge) cleanup of `raw_event_types`. One row per event
-      type in the shared event catalog.
+    description: "{{ doc('column_bronze_event_types') }}"
     columns:
       - name: event_type_code
-        description: Natural key, FK target for downstream models.
+        description: "{{ doc('column_event_type_code') }}"
         tests:
           - unique
           - not_null
 
   - name: bronze_error_codes
-    description: >
-      Incremental (merge) cleanup of `raw_error_codes`. One row per fault
-      code in the reference catalog.
+    description: "{{ doc('column_bronze_error_codes') }}"
     columns:
       - name: error_code
-        description: Natural key, FK target for downstream models.
+        description: "{{ doc('column_error_code') }}"
         tests:
           - unique
           - not_null
@@ -43,33 +37,27 @@ models:
               values: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
 
   - name: bronze_device_events
-    description: >
-      Incremental (merge) cleanup of `raw_device_events`: deduplicates on
-      `event_id` (keeping the latest-ingested copy) and drops rows with a
-      null `machine_id`. On subsequent runs, only reads rows newer than the
-      max `event_timestamp` already loaded (`is_incremental()` filter) —
-      running `dbt build` a second time with unchanged seed data processes
-      zero new rows here.
+    description: "{{ doc('column_bronze_device_events') }}"
     columns:
       - name: event_id
-        description: Deduplicated primary key of the event.
+        description: "{{ doc('column_event_id') }}"
         tests:
           - unique
           - not_null
       - name: machine_id
-        description: FK to `bronze_machines.machine_id`. Never null after cleanup.
+        description: "{{ doc('column_machine_id') }}"
         tests:
           - not_null
           - relationships:
               to: ref('bronze_machines')
               field: machine_id
       - name: event_type_code
-        description: FK to `bronze_event_types.event_type_code`.
+        description: "{{ doc('column_event_type_code') }}"
         tests:
           - relationships:
               to: ref('bronze_event_types')
               field: event_type_code
       - name: event_timestamp
-        description: UTC timestamp the event occurred.
+        description: "{{ doc('column_event_timestamp') }}"
         tests:
           - not_null
