@@ -24,3 +24,9 @@ gea_telemetry:
       http_path: "{{ env_var('DBT_DATABRICKS_HTTP_PATH') }}"
       token: "{{ env_var('DBT_DATABRICKS_TOKEN') }}"
       threads: 4
+
+    local_duckdb:
+      type: duckdb
+      path: "./target/gea_telemetry.duckdb"
+      schema: main
+      threads: 4

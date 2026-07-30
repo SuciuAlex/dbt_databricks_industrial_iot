@@ -8,6 +8,7 @@ model-paths: ["models"]
 seed-paths: ["seeds"]
 test-paths: ["tests"]
 macro-paths: ["macros"]
+docs-paths: ["docs"]
 analysis-paths: ["analyses"]
 
 target-path: "target"
