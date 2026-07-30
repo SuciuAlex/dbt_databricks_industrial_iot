@@ -1,7 +1,7 @@
 {{
     config(
         unique_key='event_type_code',
-        incremental_strategy='merge'
+        incremental_strategy='append'
     )
 }}
 

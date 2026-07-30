@@ -1,7 +1,7 @@
 {{
     config(
         unique_key='error_code',
-        incremental_strategy='merge'
+        incremental_strategy='append'
     )
 }}
 

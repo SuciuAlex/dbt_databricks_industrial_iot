@@ -297,21 +297,24 @@ models:
 
 Models:
 
-- **`bronze_machines`** — `ref('raw_machines')`, light typing/cleanup, `unique_key='machine_id'`, `incremental_strategy='merge'`.
-- **`bronze_event_types`** — `ref('raw_event_types')`, `unique_key='event_type_code'`, `incremental_strategy='merge'`.
-- **`bronze_error_codes`** — `ref('raw_error_codes')`, `unique_key='error_code'`, `incremental_strategy='merge'`.
+- **`bronze_machines`** — `ref('raw_machines')`, light typing/cleanup, `unique_key='machine_id'`, `incremental_strategy='append'`.
+- **`bronze_event_types`** — `ref('raw_event_types')`, `unique_key='event_type_code'`, `incremental_strategy='append'`.
+- **`bronze_error_codes`** — `ref('raw_error_codes')`, `unique_key='error_code'`, `incremental_strategy='append'`.
 - **`bronze_device_events`** — `ref('raw_device_events')`, the flagship incremental
   model:
-  - `unique_key='event_id'`, `incremental_strategy='merge'`.
+  - `unique_key='event_id'`, `incremental_strategy='append'`.
   - Deduplicate on `event_id` (`qualify row_number() over (partition by event_id order by source_ingested_at desc) = 1`).
   - Drop/quarantine rows with null `machine_id` (route to a `bronze_device_events_rejects` model or simply filter with a documented rationale).
   - `is_incremental()` filter: `where event_timestamp > (select max(event_timestamp) from {{ this }})`.
   - Cast/standardize types, add `_loaded_at` audit column.
 
 **Demo payoff:** running `dbt build` a second time with no new seed rows shows bronze
-incremental models processing **zero new rows** (merge no-ops), directly illustrating
-why incremental materialization avoids full-table rescans — a natural talking point in
-the repo's README.
+incremental models processing **zero new rows** when the model's incremental filter
+is set correctly (no-op), directly illustrating why incremental materialization
+avoids full-table rescans — a natural talking point in the repo's README. Note: the
+project uses an `append` incremental strategy in the bronze layer; deduplication and
+delta filters (e.g. `where event_timestamp > (select max(event_timestamp) from {{ this }})`)
+ensure we do not insert duplicate historical rows on re-runs.
 
 ### 4.3 Silver layer — **SCD Type 2 + technical control tables**
 
