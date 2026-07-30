@@ -2,10 +2,10 @@ version: 2
 
 models:
   - name: bronze_machines
-    description: "{{ doc('column_bronze_machines') }}"
+    description: "Bronze model containing cleaned machine dimension rows loaded from the raw seed."
     columns:
       - name: machine_id
-        description: "{{ doc('column_machine_id') }}"
+        description: "Natural key, FK target for downstream models."
         tests:
           - unique
           - not_null
@@ -15,19 +15,19 @@ models:
               values: ['SLICER', 'COOKER', 'BAKER', 'PACKER']
 
   - name: bronze_event_types
-    description: "{{ doc('column_bronze_event_types') }}"
+    description: "Bronze model containing the shared event-type dimension loaded from the raw seed."
     columns:
       - name: event_type_code
-        description: "{{ doc('column_event_type_code') }}"
+        description: "Natural key, FK target for downstream models."
         tests:
           - unique
           - not_null
 
   - name: bronze_error_codes
-    description: "{{ doc('column_bronze_error_codes') }}"
+    description: "Bronze model containing the error-code reference dimension loaded from the raw seed."
     columns:
       - name: error_code
-        description: "{{ doc('column_error_code') }}"
+        description: "Natural key, FK target for downstream models."
         tests:
           - unique
           - not_null
@@ -37,27 +37,27 @@ models:
               values: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
 
   - name: bronze_device_events
-    description: "{{ doc('column_bronze_device_events') }}"
+    description: "Bronze model containing deduplicated and cleaned machine event fact rows."
     columns:
       - name: event_id
-        description: "{{ doc('column_event_id') }}"
+        description: "Deduplicated primary key of the event."
         tests:
           - unique
           - not_null
       - name: machine_id
-        description: "{{ doc('column_machine_id') }}"
+        description: "Natural key, FK target for downstream models."
         tests:
           - not_null
           - relationships:
               to: ref('bronze_machines')
               field: machine_id
       - name: event_type_code
-        description: "{{ doc('column_event_type_code') }}"
+        description: "Natural key, FK target for downstream models."
         tests:
           - relationships:
               to: ref('bronze_event_types')
               field: event_type_code
       - name: event_timestamp
-        description: "{{ doc('column_event_timestamp') }}"
+        description: "UTC timestamp when the event occurred."
         tests:
           - not_null

@@ -45,7 +45,7 @@ seeds:
           - accepted_values:
               values: ['lifecycle', 'production', 'telemetry', 'fault', 'maintenance']
       - name: description
-        description: "{{ doc('column_description') }}"
+        description: "Human-readable description of what the event represents."
       - name: has_numeric_payload
         description: "Whether this event type carries a meaningful numeric payload value."
 
@@ -63,7 +63,7 @@ seeds:
           - accepted_values:
               values: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
       - name: description
-        description: "{{ doc('column_description') }}"
+        description: "Human-readable explanation of the fault or issue."
       - name: requires_maintenance
         description: "Whether this fault typically requires a maintenance intervention to clear."
 
@@ -73,11 +73,11 @@ seeds:
       - name: event_id
         description: "Deduplicated primary key of the event."
       - name: machine_id
-        description: "{{ doc('column_machine_id') }}"
+        description: "Natural key, FK target for downstream models."
       - name: machine_type
-        description: "{{ doc('column_machine_type') }}"
+        description: "One of the four GEA process areas."
       - name: event_type_code
-        description: "{{ doc('column_event_type_code') }}"
+        description: "Natural key, FK target for downstream models."
       - name: event_timestamp
         description: "UTC timestamp the event occurred."
       - name: event_date
@@ -95,6 +95,6 @@ seeds:
       - name: cycle_duration_seconds
         description: "Populated only for CYCLE_COMPLETE events."
       - name: error_code
-        description: "{{ doc('column_error_code') }}"
+        description: "Natural key, FK target for downstream models."
       - name: source_ingested_at
         description: "Simulated ingestion timestamp (event_timestamp plus a small random lag)."

@@ -2,10 +2,10 @@ version: 2
 
 models:
   - name: silver_dim_machines
-    description: "{{ doc('column_silver_dim_machines') }}"
+    description: "Silver SCD2 history table for machine status changes and current-state tracking."
     columns:
       - name: machine_sk
-        description: "{{ doc('column_machine_sk') }}"
+        description: "Surrogate key for the machine status row."
         tests:
           - unique
           - not_null
@@ -15,16 +15,16 @@ models:
               to: ref('bronze_machines')
               field: machine_id
       - name: valid_from
-        description: "{{ doc('column_valid_from') }}"
+        description: "Timestamp when the row became valid."
         tests:
           - not_null
       - name: valid_to
-        description: "{{ doc('column_valid_to') }}"
+        description: "Timestamp when the row stopped being valid."
       - name: is_current
-        description: "{{ doc('column_is_current') }}"
+        description: "Flag indicating the row is the current version of the machine status."
 
   - name: silver_fact_device_events
-    description: "{{ doc('column_silver_fact_device_events') }}"
+    description: "Silver fact table exposing conformed device events and a generic event_value payload."
     columns:
       - name: event_id
         tests:
@@ -36,9 +36,9 @@ models:
               to: ref('silver_dim_machines')
               field: machine_id
       - name: event_value
-        description: "{{ doc('column_event_value') }}"
+        description: "Generic numeric payload used for sensor and count-based event analysis."
   - name: silver_fact_error_events
-    description: "{{ doc('column_silver_fact_error_events') }}"
+    description: "Silver fact table pairing fault raises and resolves into resolution metrics."
     columns:
       - name: machine_id
         tests:
@@ -53,12 +53,12 @@ models:
         tests:
           - not_null
       - name: resolved_at
-        description: "{{ doc('column_resolved_at') }}"
+        description: "Timestamp when the error was resolved."
       - name: resolution_time_seconds
-        description: "{{ doc('column_resolution_time_seconds') }}"
+        description: "Elapsed seconds between raise and resolve timestamps."
 
   - name: silver_tec_watermark
-    description: "{{ doc('column_silver_tec_watermark') }}"
+    description: "Technical watermark table that stores the last processed event timestamp per machine and event type."
     columns:
       - name: last_processed_event_timestamp
         tests:
@@ -70,7 +70,7 @@ models:
             - event_type_code
 
   - name: silver_tec_kpi_mapping
-    description: "{{ doc('column_silver_tec_kpi_mapping') }}"
+    description: "Technical mapping table linking each machine/event combination to a KPI code."
     columns:
       - name: kpi_code
         tests:
@@ -85,7 +85,7 @@ models:
             - kpi_code
 
   - name: silver_tec_batch_execution_log
-    description: "{{ doc('column_silver_tec_batch_execution_log') }}"
+    description: "Technical execution log capturing watermark-driven batch run metrics."
     columns:
       - name: run_started_at
         tests:
