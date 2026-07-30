@@ -79,7 +79,7 @@ dbt docs generate
 dbt docs serve
 ```
 
-Talking point: dbt docs serve exposes an interactive DAG (lineage), searchable column docs, and model descriptions. Use centralized `{% docs %}` blocks so multiple schema files reference the same descriptions.
+Talking point: dbt docs serve exposes an interactive DAG (lineage), searchable column docs, and model descriptions. Use centralized doc blocks so multiple schema files reference the same descriptions.
 
 6) Demonstrate model selection, tags, and state-based runs
 
@@ -106,7 +106,7 @@ dbt run --select silver_fact_device_events
 
 Talking point: `dbt compile` and the `target/` directory expose the compiled SQL you can audit or copy to other systems.
 
-8) Show documentation best-practice: centralized `{% docs %}`
+8) Show documentation best-practice: centralized doc blocks
 
 Talking point: Keep column descriptions in one docs file and reference with `description: "{{ doc('column_x') }}"` in your schema YMLs. This prevents duplication and ensures consistent docs across models.
 
