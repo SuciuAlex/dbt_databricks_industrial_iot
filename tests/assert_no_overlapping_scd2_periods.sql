@@ -15,4 +15,4 @@ inner join {{ ref('silver_dim_machines') }} b
     on a.machine_id = b.machine_id
    and a.machine_sk != b.machine_sk
 where b.valid_from >= a.valid_from
-  and b.valid_from < coalesce(a.valid_to, timestamp('9999-12-31'))
+  and b.valid_from < coalesce(a.valid_to, cast('9999-12-31' as timestamp))

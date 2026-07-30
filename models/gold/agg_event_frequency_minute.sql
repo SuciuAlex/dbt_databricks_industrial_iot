@@ -2,6 +2,7 @@
     config(
         materialized='view',
         post_hook=[
+            "{{ log_batch_execution(model_name=this.name) }}",
             "
             merge into {{ ref('silver_tec_watermark') }} as wm
             using (
@@ -10,9 +11,8 @@
                 group by machine_id, event_type_code
             ) as src
             on wm.machine_id = src.machine_id and wm.event_type_code = src.event_type_code
-            when matched then update set wm.last_processed_event_timestamp = src.new_watermark
-            ",
-            "{{ log_batch_execution(model_name=this.name) }}"
+            when matched then update set last_processed_event_timestamp = src.new_watermark
+            "
         ]
     )
 }}
@@ -54,7 +54,7 @@ new_events as (
     left join watermark w
         on w.machine_id = e.machine_id
        and w.event_type_code = e.event_type_code
-    where e.event_timestamp > coalesce(w.last_processed_event_timestamp, timestamp('1900-01-01'))
+    where e.event_timestamp > coalesce(w.last_processed_event_timestamp, cast('1900-01-01' as timestamp))
 
 ),
 
@@ -65,11 +65,11 @@ gapped as (
         event_type_code,
         event_timestamp,
         event_value,
-        unix_timestamp(event_timestamp) - unix_timestamp(
-            lag(event_timestamp) over (
-                partition by machine_id, event_type_code order by event_timestamp
-            )
-        ) as seconds_since_prev_event
+        {{ dbt.datediff(
+            'lag(event_timestamp) over (partition by machine_id, event_type_code order by event_timestamp)',
+            'event_timestamp',
+            'second'
+        ) }} as seconds_since_prev_event
     from new_events
 
 ),

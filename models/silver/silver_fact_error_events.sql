@@ -60,6 +60,6 @@ select
     ec.requires_maintenance,
     rr.raised_at,
     rr.resolved_at,
-    unix_timestamp(rr.resolved_at) - unix_timestamp(rr.raised_at) as resolution_time_seconds
+    {{ dbt.datediff('rr.raised_at', 'rr.resolved_at', 'second') }} as resolution_time_seconds
 from raised_resolved rr
 inner join {{ ref('bronze_error_codes') }} ec on ec.error_code = rr.error_code

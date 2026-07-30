@@ -24,10 +24,14 @@ cleaned as (
         cast(rated_capacity as double) as rated_capacity,
         capacity_unit,
         initial_firmware_version,
-        current_timestamp()            as _loaded_at
+        {{ dbt.current_timestamp() }}  as _loaded_at
     from source
     where machine_id is not null
 
 )
 
 select * from cleaned
+
+{% if is_incremental() %}
+where machine_id not in (select machine_id from {{ this }})
+{% endif %}

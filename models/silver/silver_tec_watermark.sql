@@ -29,7 +29,7 @@ with combos as (
 select
     c.machine_id,
     c.event_type_code,
-    timestamp('1900-01-01 00:00:00') as last_processed_event_timestamp
+    cast('1900-01-01 00:00:00' as timestamp) as last_processed_event_timestamp
 from combos c
 
 {% if is_incremental() %}

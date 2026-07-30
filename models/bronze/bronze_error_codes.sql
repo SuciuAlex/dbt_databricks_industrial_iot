@@ -18,10 +18,14 @@ cleaned as (
         severity,
         description,
         cast(requires_maintenance as boolean) as requires_maintenance,
-        current_timestamp()                   as _loaded_at
+        {{ dbt.current_timestamp() }}         as _loaded_at
     from source
     where error_code is not null
 
 )
 
 select * from cleaned
+
+{% if is_incremental() %}
+where error_code not in (select error_code from {{ this }})
+{% endif %}

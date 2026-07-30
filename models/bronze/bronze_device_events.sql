@@ -53,7 +53,7 @@ cleaned as (
         cast(cycle_duration_seconds as bigint) as cycle_duration_seconds,
         error_code,
         cast(source_ingested_at as timestamp)  as source_ingested_at,
-        current_timestamp()                    as _loaded_at
+        {{ dbt.current_timestamp() }}          as _loaded_at
     from deduplicated
 
 )
@@ -61,5 +61,5 @@ cleaned as (
 select * from cleaned
 
 {% if is_incremental() %}
-where event_timestamp > (select coalesce(max(event_timestamp), timestamp('1900-01-01')) from {{ this }})
+where event_timestamp > (select coalesce(max(event_timestamp), cast('1900-01-01' as timestamp)) from {{ this }})
 {% endif %}
