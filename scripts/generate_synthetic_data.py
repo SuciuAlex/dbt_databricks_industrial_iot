@@ -4,6 +4,12 @@
 Produces the four raw seed CSVs under seeds/ per CLAUDE.md section 3:
 raw_machines, raw_event_types, raw_error_codes, raw_device_events.
 
+The fact seed models **five daily gateway load runs** (one per day of the
+2026-04-01..2026-04-05 window): every row carries a `load_date` telling the
+bronze layer which batch delivered it. Events that arrive after midnight are
+assigned to the following day's batch, and a handful of rows are re-delivered
+in the next batch to produce cross-batch duplicates for silver to resolve.
+
 Deterministic: uses a fixed numpy Generator seed so re-running produces
 byte-identical output. Run with: python scripts/generate_synthetic_data.py
 """
@@ -20,11 +26,12 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 SEEDS_DIR = REPO_ROOT / "seeds"
 
 START_DATE = pd.Timestamp("2026-04-01")
-END_DATE = pd.Timestamp("2026-06-30")
-N_DAYS = (END_DATE - START_DATE).days + 1  # 91 days, "exactly 3 months"
+END_DATE = pd.Timestamp("2026-04-05")
+N_DAYS = (END_DATE - START_DATE).days + 1  # 5 days = 5 simulated daily loads
 
-MAX_TOTAL_ROWS = 1_000_000
-N_DENSE_EVENTS_PER_MACHINE = 40_000  # tuned to land total volume in the 700k-850k range
+TARGET_TOTAL_EVENTS = 10_000
+MAX_TOTAL_ROWS = 10_500  # demo-sized cap: the whole build must run in seconds
+N_DENSE_EVENTS_PER_MACHINE = 480  # tuned so the fact seed lands near 10,000 rows
 
 # ---------------------------------------------------------------------------
 # Reference data
@@ -296,7 +303,7 @@ def generate_dense_events_for_machine(machine_id, machine_type):
 
 
 def generate_status_changes_for_machine(machine_id, machine_type):
-    n = int(rng.integers(15, 31))
+    n = int(rng.integers(5, 10))
     _, ts = sample_time_components(n, rng)
     ts_sorted = ts.sort_values()
     status_values = [STATUS_CYCLE[i % len(STATUS_CYCLE)] for i in range(n)]
@@ -316,7 +323,7 @@ def generate_status_changes_for_machine(machine_id, machine_type):
 
 
 def generate_error_episodes_for_machine(machine_id, machine_type, error_codes_df):
-    n_episodes = int(rng.integers(3, 8))
+    n_episodes = int(rng.integers(2, 5))
     _, raised_ts = sample_time_components(n_episodes, rng)
     idxs = rng.integers(0, len(error_codes_df), size=n_episodes)
     codes = error_codes_df.iloc[idxs].reset_index(drop=True)
@@ -398,16 +405,27 @@ def build_device_events(machines_df, error_codes_df):
     raw_bytes = rng.integers(0, 256, size=(n, 16), dtype=np.uint8)
     df["event_id"] = [str(uuid.UUID(bytes=bytes(row), version=4)) for row in raw_bytes]
 
-    # --- intentional data quality noise (cleaned up in bronze) ---
-    n_dupe = max(1, int(n * 0.0003))  # well under the 0.05% cap
-    dupe_idx = rng.choice(n, size=n_dupe, replace=False)
+    # load_date: which daily batch delivered the row. An event ingested after
+    # midnight rides along on the next morning's load, so load_date is not
+    # always equal to event_date (clamped to the last simulated load).
+    last_load_date = END_DATE.normalize()
+    df["load_date"] = df["source_ingested_at"].dt.normalize().clip(upper=last_load_date)
+
+    # --- intentional data quality noise (resolved in silver) ---
+    # Re-deliveries: the same event_id turns up again in the FOLLOWING daily
+    # batch with a later ingestion timestamp. Bronze appends both copies;
+    # silver keeps the latest-ingested one.
+    n_dupe = int(len(df) * 0.02)
+    dupe_idx = rng.choice(len(df), size=n_dupe, replace=False)
     dupes = df.iloc[dupe_idx].copy()
     dupes["source_ingested_at"] = dupes["source_ingested_at"] + pd.to_timedelta(
-        rng.integers(30, 600, size=n_dupe), unit="s"
+        rng.integers(1800, 7200, size=n_dupe), unit="s"
     )
+    dupes["load_date"] = (dupes["load_date"] + pd.Timedelta(days=1)).clip(upper=last_load_date)
     df = pd.concat([df, dupes], ignore_index=True)
 
-    n_null_machine = 25
+    # Malformed gateway payloads with no machine_id, quarantined in silver.
+    n_null_machine = int(len(df) * 0.005)
     null_idx = rng.choice(len(df), size=n_null_machine, replace=False)
     df.loc[null_idx, "machine_id"] = None
 
@@ -416,6 +434,7 @@ def build_device_events(machines_df, error_codes_df):
     df = df.iloc[shuffle_idx].reset_index(drop=True)
 
     df["event_date"] = df["event_timestamp"].dt.date
+    df["load_date"] = df["load_date"].dt.date
     df["product_count"] = df["product_count"].astype("Int64")
     df["cycle_duration_seconds"] = df["cycle_duration_seconds"].astype("Int64")
 
@@ -434,6 +453,7 @@ def build_device_events(machines_df, error_codes_df):
         "cycle_duration_seconds",
         "error_code",
         "source_ingested_at",
+        "load_date",
     ]
     return df[column_order]
 
@@ -463,6 +483,14 @@ def main():
     for name, count in counts.items():
         print(f"  {name}: {count:,}")
     print(f"  TOTAL: {total:,}")
+
+    print("\nraw_device_events rows per simulated daily load (load_date):")
+    for load_date, count in device_events_df["load_date"].value_counts().sort_index().items():
+        print(f"  {load_date}: {count:,}")
+
+    dupes = len(device_events_df) - device_events_df["event_id"].nunique()
+    nulls = int(device_events_df["machine_id"].isna().sum())
+    print(f"\nIntentional noise: {dupes:,} duplicate event_id rows, {nulls:,} null machine_id rows")
 
     assert total < MAX_TOTAL_ROWS, f"Total row count {total:,} exceeds the {MAX_TOTAL_ROWS:,} cap"
     print(f"OK: total row count is under the {MAX_TOTAL_ROWS:,} row cap.")

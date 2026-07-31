@@ -1,38 +1,23 @@
 {{
     config(
-        unique_key='event_id',
         incremental_strategy='append'
     )
 }}
 
+-- BRONZE LAYER RULE (CLAUDE.md section 4.2): bronze is an append-only landing
+-- zone. It types and stamps the incoming batch and nothing else — no
+-- deduplication and no quarantining, so this table legitimately contains
+-- duplicate event_ids and null machine_ids. Silver resolves both.
+--
+-- var('load_date') selects one simulated daily gateway load (e.g.
+-- `dbt build --select bronze_device_events --vars 'load_date: 2026-04-02'`).
+-- Unset, every batch is appended. Re-running the same load_date appends its
+-- rows a second time; that duplication is intentional and is what silver's
+-- dedup step absorbs.
+
 with source as (
 
     select * from {{ ref('raw_device_events') }}
-
-),
-
-filtered as (
-
-    -- Quarantine rows with a null machine_id (simulated malformed gateway
-    -- payloads, injected intentionally in raw_device_events) — dropping them
-    -- here is what makes the not_null test on this model's machine_id pass
-    -- because of the transformation, not by accident.
-    select *
-    from source
-    where machine_id is not null
-
-),
-
-deduplicated as (
-
-    -- The raw seed intentionally contains a small number of duplicate
-    -- event_ids (simulated re-delivery). Keep the latest-ingested copy.
-    select *
-    from filtered
-    qualify row_number() over (
-        partition by event_id
-        order by source_ingested_at desc
-    ) = 1
 
 ),
 
@@ -53,13 +38,14 @@ cleaned as (
         cast(cycle_duration_seconds as bigint) as cycle_duration_seconds,
         error_code,
         cast(source_ingested_at as timestamp)  as source_ingested_at,
+        cast(load_date as date)                as load_date,
         {{ dbt.current_timestamp() }}          as _loaded_at
-    from deduplicated
+    from source
 
 )
 
 select * from cleaned
 
-{% if is_incremental() %}
-where event_timestamp > (select coalesce(max(event_timestamp), cast('1900-01-01' as timestamp)) from {{ this }})
+{% if var('load_date', '') %}
+where load_date = cast('{{ var('load_date') }}' as date)
 {% endif %}

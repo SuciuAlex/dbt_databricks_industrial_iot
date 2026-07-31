@@ -1,9 +1,12 @@
 {{
     config(
-        unique_key='machine_id',
         incremental_strategy='append'
     )
 }}
+
+-- BRONZE LAYER RULE (CLAUDE.md section 4.2): append-only landing zone. Every
+-- run re-appends the reference seed, so this table may hold several versions
+-- of the same machine_id. silver_dim_machines picks the latest per machine.
 
 with source as (
 
@@ -26,12 +29,7 @@ cleaned as (
         initial_firmware_version,
         {{ dbt.current_timestamp() }}  as _loaded_at
     from source
-    where machine_id is not null
 
 )
 
 select * from cleaned
-
-{% if is_incremental() %}
-where machine_id not in (select machine_id from {{ this }})
-{% endif %}

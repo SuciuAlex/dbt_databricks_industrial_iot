@@ -1,9 +1,12 @@
 {{
     config(
-        unique_key='error_code',
         incremental_strategy='append'
     )
 }}
+
+-- BRONZE LAYER RULE (CLAUDE.md section 4.2): append-only landing zone. Every
+-- run re-appends the reference seed, so duplicate error_code rows are expected
+-- here; the silver models deduplicate before joining.
 
 with source as (
 
@@ -20,12 +23,7 @@ cleaned as (
         cast(requires_maintenance as boolean) as requires_maintenance,
         {{ dbt.current_timestamp() }}         as _loaded_at
     from source
-    where error_code is not null
 
 )
 
 select * from cleaned
-
-{% if is_incremental() %}
-where error_code not in (select error_code from {{ this }})
-{% endif %}

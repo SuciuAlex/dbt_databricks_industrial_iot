@@ -67,23 +67,39 @@ seeds:
       - name: requires_maintenance
         description: "{{ doc('column_requires_maintenance') }}"
 
+  # No unique test on event_id and no not_null on machine_id here: the raw fact
+  # seed deliberately ships re-delivered events and malformed payloads, which
+  # silver is responsible for resolving (CLAUDE.md sections 3.5 and 4.3).
   - name: raw_device_events
     description: "{{ doc('table_raw_device_events') }}"
     columns:
       - name: event_id
         description: "{{ doc('column_event_id') }}"
+        tests:
+          - not_null
       - name: machine_id
         description: "{{ doc('column_machine_id') }}"
       - name: machine_type
         description: "{{ doc('column_machine_type') }}"
       - name: event_type_code
         description: "{{ doc('column_event_type_code') }}"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('raw_event_types')
+              field: event_type_code
       - name: event_timestamp
         description: "{{ doc('column_event_timestamp') }}"
+        tests:
+          - not_null
       - name: event_date
         description: "{{ doc('column_event_date') }}"
       - name: status_value
         description: "{{ doc('column_status_value') }}"
+        tests:
+          - accepted_values:
+              values: ['RUNNING', 'IDLE', 'STOPPED', 'MAINTENANCE', 'ERROR']
+              where: "status_value is not null"
       - name: temperature_c
         description: "{{ doc('column_temperature_c') }}"
       - name: speed_units_per_min
@@ -98,3 +114,9 @@ seeds:
         description: "{{ doc('column_error_code') }}"
       - name: source_ingested_at
         description: "{{ doc('column_source_ingested_at') }}"
+      - name: load_date
+        description: "{{ doc('column_load_date') }}"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['2026-04-01', '2026-04-02', '2026-04-03', '2026-04-04', '2026-04-05']

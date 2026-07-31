@@ -19,20 +19,30 @@ clean-targets:
 vars:
   # First-run fallback watermark for models driven by silver_tec_watermark.
   watermark_default_start: '1900-01-01T00:00:00'
+  # Simulated daily gateway load. When set (e.g. --vars 'load_date: 2026-04-02')
+  # the bronze fact model appends only that batch; unset loads every batch.
+  load_date: ''
 
 seeds:
   gea_telemetry:
     +schema: raw
     +quote_columns: false
+    +persist_docs:
+      relation: true
+      columns: true
     raw_device_events:
       +column_types:
         event_timestamp: timestamp
         source_ingested_at: timestamp
         event_date: date
+        load_date: date
 
 models:
   gea_telemetry:
     +materialized: view
+    +persist_docs:
+      relation: true
+      columns: true
     bronze:
       +materialized: incremental
       +schema: bronze

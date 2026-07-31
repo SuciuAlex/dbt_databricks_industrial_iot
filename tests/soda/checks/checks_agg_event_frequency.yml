@@ -15,12 +15,12 @@ checks for agg_event_frequency_minute:
           and event_count > 1
 
   - failed rows:
-      name: bucket_start falls within the synthetic dataset's 3-month window
+      name: bucket_start falls within the synthetic dataset's 5-day window
       fail query: |
         select machine_id, event_type_code, bucket_start
         from agg_event_frequency_minute
         where bucket_start < timestamp('2026-04-01')
-           or bucket_start > timestamp('2026-07-01')
+           or bucket_start > timestamp('2026-04-06')
 
 checks for agg_event_frequency_hour:
   - failed rows:
@@ -39,12 +39,12 @@ checks for agg_event_frequency_hour:
           and event_count > 1
 
   - failed rows:
-      name: bucket_start falls within the synthetic dataset's 3-month window
+      name: bucket_start falls within the synthetic dataset's 5-day window
       fail query: |
         select machine_id, event_type_code, bucket_start
         from agg_event_frequency_hour
         where bucket_start < timestamp('2026-04-01')
-           or bucket_start > timestamp('2026-07-01')
+           or bucket_start > timestamp('2026-04-06')
 
 checks for agg_event_frequency_day:
   - failed rows:
@@ -63,9 +63,9 @@ checks for agg_event_frequency_day:
           and event_count > 1
 
   - failed rows:
-      name: bucket_start falls within the synthetic dataset's 3-month window
+      name: bucket_start falls within the synthetic dataset's 5-day window
       fail query: |
         select machine_id, event_type_code, bucket_start
         from agg_event_frequency_day
         where bucket_start < timestamp('2026-04-01')
-           or bucket_start > timestamp('2026-07-01')
+           or bucket_start > timestamp('2026-04-06')

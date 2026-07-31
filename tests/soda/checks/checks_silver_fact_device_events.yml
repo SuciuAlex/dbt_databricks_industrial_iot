@@ -1,6 +1,36 @@
 checks for silver_fact_device_events:
   - row_count > 0
   - duplicate_count(event_id) = 0
+  - missing_count(machine_id) = 0
+
+  - failed rows:
+      name: every raw event_id survives exactly once into silver
+      fail query: |
+        select b.event_id
+        from (select distinct event_id from bronze_device_events where machine_id is not null) b
+        left join silver_fact_device_events s on s.event_id = b.event_id
+        where s.event_id is null
+
+  - failed rows:
+      name: silver keeps the latest-ingested copy of a re-delivered event
+      fail query: |
+        select s.event_id
+        from silver_fact_device_events s
+        join (
+            select event_id, max(source_ingested_at) as max_ingested_at
+            from bronze_device_events
+            where machine_id is not null
+            group by event_id
+        ) b on b.event_id = s.event_id
+        where s.source_ingested_at <> b.max_ingested_at
+
+  - failed rows:
+      name: load_date is one of the five simulated daily loads
+      fail query: |
+        select event_id
+        from silver_fact_device_events
+        where load_date < date('2026-04-01')
+           or load_date > date('2026-04-05')
 
   - failed rows:
       name: event_value populated for sensor/count event types

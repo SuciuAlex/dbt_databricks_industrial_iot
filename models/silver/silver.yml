@@ -1,5 +1,9 @@
 version: 2
 
+# Silver is where the data-quality invariants are asserted, because silver is
+# where deduplication and quarantining happen (CLAUDE.md section 4.3). The
+# unique tests below therefore pass *because of* the transformation, not by
+# accident — bronze upstream of them holds duplicates on purpose.
 models:
   - name: silver_dim_machines
     description: "{{ doc('table_silver_dim_machines') }}"
@@ -10,10 +14,26 @@ models:
           - unique
           - not_null
       - name: machine_id
+        description: "{{ doc('column_machine_id') }}"
         tests:
+          - not_null
           - relationships:
               to: ref('bronze_machines')
               field: machine_id
+      - name: machine_type
+        description: "{{ doc('column_machine_type') }}"
+        tests:
+          - accepted_values:
+              values: ['SLICER', 'COOKER', 'BAKER', 'PACKER']
+      - name: status_value
+        description: "{{ doc('column_status_value') }}"
+        tests:
+          - accepted_values:
+              values: ['RUNNING', 'IDLE', 'STOPPED', 'MAINTENANCE', 'ERROR']
+      - name: plant_location
+        description: "{{ doc('column_plant_location') }}"
+      - name: firmware_version
+        description: "{{ doc('column_firmware_version') }}"
       - name: valid_from
         description: "{{ doc('column_valid_from') }}"
         tests:
@@ -22,45 +42,120 @@ models:
         description: "{{ doc('column_valid_to') }}"
       - name: is_current
         description: "{{ doc('column_is_current') }}"
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - machine_id
+            - valid_from
 
   - name: silver_fact_device_events
     description: "{{ doc('table_silver_fact_device_events') }}"
     columns:
       - name: event_id
+        description: "{{ doc('column_event_id') }}"
         tests:
           - unique
           - not_null
       - name: machine_id
+        description: "{{ doc('column_machine_id') }}"
         tests:
+          - not_null
           - relationships:
               to: ref('silver_dim_machines')
               field: machine_id
+      - name: machine_type
+        description: "{{ doc('column_machine_type') }}"
+      - name: plant_location
+        description: "{{ doc('column_plant_location') }}"
+      - name: event_type_code
+        description: "{{ doc('column_event_type_code') }}"
+        tests:
+          - not_null
+      - name: event_category
+        description: "{{ doc('column_event_category') }}"
+      - name: event_timestamp
+        description: "{{ doc('column_event_timestamp') }}"
+        tests:
+          - not_null
+      - name: event_date
+        description: "{{ doc('column_event_date') }}"
+      - name: status_value
+        description: "{{ doc('column_status_value') }}"
+      - name: temperature_c
+        description: "{{ doc('column_temperature_c') }}"
+      - name: speed_units_per_min
+        description: "{{ doc('column_speed_units_per_min') }}"
+      - name: vibration_mm_s
+        description: "{{ doc('column_vibration_mm_s') }}"
+      - name: product_count
+        description: "{{ doc('column_product_count') }}"
+      - name: cycle_duration_seconds
+        description: "{{ doc('column_cycle_duration_seconds') }}"
+      - name: error_code
+        description: "{{ doc('column_error_code') }}"
       - name: event_value
         description: "{{ doc('column_event_value') }}"
+      - name: source_ingested_at
+        description: "{{ doc('column_source_ingested_at') }}"
+      - name: load_date
+        description: "{{ doc('column_load_date') }}"
+        tests:
+          - not_null
+
   - name: silver_fact_error_events
     description: "{{ doc('table_silver_fact_error_events') }}"
     columns:
+      - name: error_event_sk
+        description: "{{ doc('column_error_event_sk') }}"
+        tests:
+          - unique
+          - not_null
       - name: machine_id
+        description: "{{ doc('column_machine_id') }}"
         tests:
           - not_null
       - name: error_code
+        description: "{{ doc('column_error_code') }}"
         tests:
           - not_null
           - relationships:
               to: ref('bronze_error_codes')
               field: error_code
+      - name: severity
+        description: "{{ doc('column_severity') }}"
+        tests:
+          - accepted_values:
+              values: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+      - name: requires_maintenance
+        description: "{{ doc('column_requires_maintenance') }}"
       - name: raised_at
+        description: "{{ doc('column_raised_at') }}"
         tests:
           - not_null
       - name: resolved_at
         description: "{{ doc('column_resolved_at') }}"
       - name: resolution_time_seconds
         description: "{{ doc('column_resolution_time_seconds') }}"
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "resolution_time_seconds is not null"
 
   - name: silver_tec_watermark
     description: "{{ doc('table_silver_tec_watermark') }}"
     columns:
+      - name: machine_id
+        description: "{{ doc('column_machine_id') }}"
+        tests:
+          - not_null
+      - name: event_type_code
+        description: "{{ doc('column_event_type_code') }}"
+        tests:
+          - not_null
       - name: last_processed_event_timestamp
+        description: "{{ doc('column_last_processed_event_timestamp') }}"
         tests:
           - not_null
     tests:
@@ -72,7 +167,16 @@ models:
   - name: silver_tec_kpi_mapping
     description: "{{ doc('table_silver_tec_kpi_mapping') }}"
     columns:
+      - name: machine_id
+        description: "{{ doc('column_machine_id') }}"
+        tests:
+          - not_null
+      - name: event_type_code
+        description: "{{ doc('column_event_type_code') }}"
+        tests:
+          - not_null
       - name: kpi_code
+        description: "{{ doc('column_kpi_code') }}"
         tests:
           - not_null
           - accepted_values:
@@ -87,10 +191,28 @@ models:
   - name: silver_tec_batch_execution_log
     description: "{{ doc('table_silver_tec_batch_execution_log') }}"
     columns:
+      - name: batch_run_id
+        description: "{{ doc('column_batch_run_id') }}"
+        tests:
+          - not_null
+      - name: model_name
+        description: "{{ doc('column_batch_model_name') }}"
+        tests:
+          - not_null
+      - name: row_count
+        description: "{{ doc('column_row_count') }}"
+      - name: distinct_machine_count
+        description: "{{ doc('column_distinct_machine_count') }}"
+      - name: distinct_event_count
+        description: "{{ doc('column_distinct_event_count') }}"
+      - name: duration_seconds
+        description: "{{ doc('column_duration_seconds') }}"
       - name: run_started_at
+        description: "{{ doc('column_run_started_at') }}"
         tests:
           - not_null
       - name: run_completed_at
+        description: "{{ doc('column_run_completed_at') }}"
         tests:
           - not_null
     tests:

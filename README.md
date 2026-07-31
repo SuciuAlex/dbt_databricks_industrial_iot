@@ -16,9 +16,10 @@ README summarizes what the repo demonstrates and how to run it.
    way to gold.
 3. **dbt tests** (`not_null`, `unique`, `relationships`, `accepted_values`,
    plus `dbt_utils`/`dbt_expectations` checks) at every layer.
-4. **Incremental-only** materialization in bronze, with a genuine
-   zero-new-rows no-op on a second run.
-5. **SCD Type 2** history tracking in silver (`silver_dim_machines`).
+4. **Incremental-only** materialization in bronze, modelled as append-only
+   daily batch landings (one batch per `load_date`).
+5. **SCD Type 2** history tracking in silver (`silver_dim_machines`), plus
+   silver ownership of deduplication and quarantining.
 6. **View-only** gold models that source exclusively from silver.
 7. `dbt build --select +model_name+` rebuilding an exact upstream +
    downstream slice of the DAG.
@@ -36,7 +37,7 @@ dbt_project.yml
 packages.yml                dbt_utils, dbt_expectations
 profiles.yml.example
 .claude/skills/              5 role-specific agent skills
-seeds/                       raw layer (4 CSVs, ~801k rows total)
+seeds/                       raw layer (4 CSVs, ~10.1k rows total)
 models/raw/                  raw-layer exposure/doc (seeds ARE raw, no source())
 models/bronze/                4 incremental models
 models/silver/                3 business models (SCD2, facts) + 3 tec_ control tables
@@ -55,24 +56,36 @@ scripts/generate_synthetic_data.py
   emitted by every machine's gateway — payload columns are `NULL` where not
   applicable to a given event.
 - **18 error codes** across LOW/MEDIUM/HIGH/CRITICAL severities.
-- **~801,000 synthetic device events** over a 3-month window
-  (2026-04-01 → 2026-06-30), generated deterministically (fixed seed) by
-  `scripts/generate_synthetic_data.py`, including a small amount of
-  intentional data-quality noise (duplicate `event_id`s, null `machine_id`s)
-  that `bronze_device_events` is responsible for cleaning up.
+- **~10,100 synthetic device events** over a 5-day window
+  (2026-04-01 → 2026-04-05), generated deterministically (fixed seed) by
+  `scripts/generate_synthetic_data.py`. Every event carries a `load_date`
+  identifying which of the five simulated **daily load batches** delivered
+  it, so the demo can replay one day at a time. The generator also injects
+  intentional data-quality noise — ~2% of events are re-delivered in the
+  *following* batch (duplicate `event_id`s with a later ingestion
+  timestamp) and ~0.5% arrive with a null `machine_id` — which the **silver**
+  layer is responsible for cleaning up.
+
+## Layer responsibilities
+
+- **Bronze** is a faithful, append-only landing zone: each run appends the
+  incoming batch as-is. No deduplication, no filtering, no delta logic —
+  re-running the same batch legitimately produces duplicates, exactly as a
+  real raw landing zone would.
+- **Silver** owns data quality: it quarantines rows with a null
+  `machine_id`, deduplicates events by `event_id` (keeping the
+  latest-ingested copy), deduplicates the re-appended dimension rows by
+  `_loaded_at`, and builds the SCD2 machine dimension.
+- **Gold** is views only, sourcing exclusively from silver.
 
 ## Setup
 
-`seeds/raw_device_events.csv` (~801k rows, ~100MB+) is **not committed** to
-this repo — it's fully reproducible from a fixed random seed, and a file
-that size is both a poor git citizen and over GitHub's 100MB per-file push
-limit. The three small dimension seeds (`raw_machines`, `raw_event_types`,
-`raw_error_codes`) are tiny and are committed as-is. Generate the fact seed
-locally before `dbt seed`:
+All four seed CSVs are committed (the fact seed is only ~10k rows), and are
+fully reproducible from a fixed random seed if you want to regenerate them:
 
 ```bash
-python3 -m pip install pandas numpy   # for the data generator
-python3 scripts/generate_synthetic_data.py   # regenerates seeds/*.csv deterministically, incl. raw_device_events.csv
+python3 -m pip install -r requirements.txt   # pandas/numpy for the data generator
+python3 scripts/generate_synthetic_data.py   # regenerates seeds/*.csv deterministically
 
 cp profiles.yml.example ~/.dbt/profiles.yml  # fill in your Databricks env vars:
 export DBT_DATABRICKS_HOST=...
@@ -81,8 +94,12 @@ export DBT_DATABRICKS_TOKEN=...
 
 dbt deps        # installs dbt_utils, dbt_expectations
 dbt seed        # loads the raw layer
-dbt build       # builds + tests bronze -> silver -> gold end to end
+dbt build --threads 1   # builds + tests bronze -> silver -> gold end to end
 ```
+
+> The three `agg_event_frequency_*` models each merge into the shared
+> `silver_tec_watermark` table from a post-hook, so builds must run with
+> `--threads 1` to avoid concurrent-write conflicts on Delta.
 
 ## The money-shot demos
 
@@ -107,16 +124,45 @@ dbt build --select tag:gold
 dbt build --select state:modified+
 ```
 
-### Proof: incremental bronze does zero-row no-ops
+### Proof: simulating the five daily loads
 
-Run `dbt build` a second time with no seed changes. Bronze's incremental
-`merge` models process **zero new rows** — the `is_incremental()` filter on
-`bronze_device_events` means nothing after `max(event_timestamp)` gets
-rescanned, and the tiny dimension merges are no-ops on unchanged data. The
-three `agg_event_frequency_*` gold models show the same story one layer up:
-their watermark-driven read against `silver_tec_watermark` also picks up
+Bronze models honour a `load_date` variable, so a single seed can be
+replayed one batch at a time exactly as a daily scheduled job would:
+
+```bash
+dbt build --vars 'load_date: 2026-04-01' --threads 1
+dbt build --vars 'load_date: 2026-04-02' --threads 1
+# ... through 2026-04-05
+```
+
+Each run appends only that batch's rows to bronze. Running the same date
+twice appends the batch twice — bronze is deliberately not idempotent,
+mirroring a real landing zone — and silver's `event_id` dedup collapses the
+duplicates away again, which is the point of the layer split. Omitting the
+variable (`dbt build`) loads all five batches at once.
+
+The three `agg_event_frequency_*` gold models show incrementality one layer
+up: their watermark-driven read against `silver_tec_watermark` picks up
 zero new rows on an unchanged second run, because their post-hooks already
 advanced the watermark to the max processed timestamp on the first run.
+
+### Proof: table and column comments land in Unity Catalog
+
+`persist_docs` is enabled project-wide for relations and columns, so every
+description written in the `.yml` files (all sourced from doc blocks in
+`docs/`) is pushed into Databricks and is queryable after a build:
+
+```sql
+describe table extended gea_demo.silver.silver_fact_device_events;
+
+select table_name, comment
+from gea_demo.information_schema.tables
+where table_schema in ('bronze', 'silver', 'gold');
+
+select table_name, column_name, comment
+from gea_demo.information_schema.columns
+where table_schema in ('bronze', 'silver', 'gold');
+```
 
 ## SODA data-quality layer
 

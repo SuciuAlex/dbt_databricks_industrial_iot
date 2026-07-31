@@ -9,6 +9,8 @@
 -- Assumes fault episodes for a given machine_id + error_code do not
 -- overlap (true by construction in the synthetic generator), so the next
 -- ERROR_RESOLVED chronologically after an ERROR_RAISED is its match.
+-- Reads the already-deduplicated silver fact; the error-code dimension is
+-- deduplicated here because bronze re-appends it on every load.
 
 with error_events as (
 
@@ -19,6 +21,17 @@ with error_events as (
         event_timestamp
     from {{ ref('silver_fact_device_events') }}
     where event_type_code in ('ERROR_RAISED', 'ERROR_RESOLVED')
+
+),
+
+error_codes as (
+
+    select
+        error_code,
+        severity,
+        requires_maintenance
+    from {{ ref('bronze_error_codes') }}
+    qualify row_number() over (partition by error_code order by _loaded_at desc) = 1
 
 ),
 
@@ -62,4 +75,4 @@ select
     rr.resolved_at,
     {{ dbt.datediff('rr.raised_at', 'rr.resolved_at', 'second') }} as resolution_time_seconds
 from raised_resolved rr
-inner join {{ ref('bronze_error_codes') }} ec on ec.error_code = rr.error_code
+inner join error_codes ec on ec.error_code = rr.error_code

@@ -9,10 +9,32 @@
 -- `event_value` column that lets downstream models (esp. the gold
 -- event-frequency views) define "min/max value in a bucket" without
 -- needing to know which type-specific payload column applies.
+--
+-- SILVER OWNS DATA QUALITY (CLAUDE.md section 4.3). Bronze is an append-only
+-- landing zone, so everything arriving here may contain re-delivered rows and
+-- malformed payloads. This model is where that is resolved:
+--   * duplicate event_ids  -> keep the latest-ingested copy
+--   * null machine_id rows -> quarantined (dropped)
+--   * duplicate dimension rows from repeated bronze appends -> latest per key
+-- This is what makes the unique/not_null tests on this model pass because of
+-- the transformation rather than by accident.
 
-with events as (
+with quarantined as (
 
-    select * from {{ ref('bronze_device_events') }}
+    select *
+    from {{ ref('bronze_device_events') }}
+    where machine_id is not null
+
+),
+
+events as (
+
+    select *
+    from quarantined
+    qualify row_number() over (
+        partition by event_id
+        order by source_ingested_at desc, _loaded_at desc
+    ) = 1
 
 ),
 
@@ -23,6 +45,7 @@ machines as (
         machine_type as machine_type_dim,
         plant_location
     from {{ ref('bronze_machines') }}
+    qualify row_number() over (partition by machine_id order by _loaded_at desc) = 1
 
 ),
 
@@ -32,6 +55,7 @@ event_types as (
         event_type_code,
         event_category
     from {{ ref('bronze_event_types') }}
+    qualify row_number() over (partition by event_type_code order by _loaded_at desc) = 1
 
 )
 
@@ -61,7 +85,8 @@ select
             else null
         end as double
     ) as event_value,
-    e.source_ingested_at
+    e.source_ingested_at,
+    e.load_date
 from events e
 inner join machines m on m.machine_id = e.machine_id
 left join event_types et on et.event_type_code = e.event_type_code

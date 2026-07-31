@@ -9,10 +9,3 @@ __pycache__/
 venv/
 .DS_Store
 .claude/settings.local.json
-
-# raw_device_events.csv is ~800k rows / ~100MB+ — too large to be a sane git
-# blob (and over GitHub's 100MB hard per-file push limit). It's fully
-# reproducible: run `python3 scripts/generate_synthetic_data.py` (fixed
-# random seed) to regenerate it byte-identically before `dbt seed`. The
-# three small dimension seeds are tiny and stay committed as-is.
-seeds/raw_device_events.csv

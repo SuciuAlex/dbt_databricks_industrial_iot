@@ -1,5 +1,9 @@
 version: 2
 
+# Bronze is an append-only landing zone (CLAUDE.md section 4.2): re-running a
+# load re-appends its rows, so NO uniqueness test belongs at this layer, and
+# machine_id may legitimately be null. Those invariants are asserted in silver,
+# where the deduplication and quarantining actually happen.
 models:
   - name: bronze_machines
     description: "{{ doc('table_bronze_machines') }}"
@@ -7,12 +11,32 @@ models:
       - name: machine_id
         description: "{{ doc('column_machine_id') }}"
         tests:
-          - unique
           - not_null
       - name: machine_type
+        description: "{{ doc('column_machine_type') }}"
         tests:
           - accepted_values:
               values: ['SLICER', 'COOKER', 'BAKER', 'PACKER']
+      - name: model_name
+        description: "{{ doc('column_model_name') }}"
+      - name: manufacturer
+        description: "{{ doc('column_manufacturer') }}"
+      - name: plant_location
+        description: "{{ doc('column_plant_location') }}"
+      - name: plant_country
+        description: "{{ doc('column_plant_country') }}"
+      - name: install_date
+        description: "{{ doc('column_install_date') }}"
+      - name: rated_capacity
+        description: "{{ doc('column_rated_capacity') }}"
+      - name: capacity_unit
+        description: "{{ doc('column_capacity_unit') }}"
+      - name: initial_firmware_version
+        description: "{{ doc('column_initial_firmware_version') }}"
+      - name: _loaded_at
+        description: "{{ doc('column_loaded_at') }}"
+        tests:
+          - not_null
 
   - name: bronze_event_types
     description: "{{ doc('table_bronze_event_types') }}"
@@ -20,7 +44,19 @@ models:
       - name: event_type_code
         description: "{{ doc('column_event_type_code') }}"
         tests:
-          - unique
+          - not_null
+      - name: event_category
+        description: "{{ doc('column_event_category') }}"
+        tests:
+          - accepted_values:
+              values: ['lifecycle', 'production', 'telemetry', 'fault', 'maintenance']
+      - name: description
+        description: "{{ doc('column_description') }}"
+      - name: has_numeric_payload
+        description: "{{ doc('column_has_numeric_payload') }}"
+      - name: _loaded_at
+        description: "{{ doc('column_loaded_at') }}"
+        tests:
           - not_null
 
   - name: bronze_error_codes
@@ -29,12 +65,20 @@ models:
       - name: error_code
         description: "{{ doc('column_error_code') }}"
         tests:
-          - unique
           - not_null
       - name: severity
+        description: "{{ doc('column_severity') }}"
         tests:
           - accepted_values:
               values: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+      - name: description
+        description: "{{ doc('column_description') }}"
+      - name: requires_maintenance
+        description: "{{ doc('column_requires_maintenance') }}"
+      - name: _loaded_at
+        description: "{{ doc('column_loaded_at') }}"
+        tests:
+          - not_null
 
   - name: bronze_device_events
     description: "{{ doc('table_bronze_device_events') }}"
@@ -42,18 +86,19 @@ models:
       - name: event_id
         description: "{{ doc('column_event_id') }}"
         tests:
-          - unique
           - not_null
       - name: machine_id
         description: "{{ doc('column_machine_id') }}"
         tests:
-          - not_null
           - relationships:
               to: ref('bronze_machines')
               field: machine_id
+      - name: machine_type
+        description: "{{ doc('column_machine_type') }}"
       - name: event_type_code
         description: "{{ doc('column_event_type_code') }}"
         tests:
+          - not_null
           - relationships:
               to: ref('bronze_event_types')
               field: event_type_code
@@ -61,3 +106,30 @@ models:
         description: "{{ doc('column_event_timestamp') }}"
         tests:
           - not_null
+      - name: event_date
+        description: "{{ doc('column_event_date') }}"
+      - name: status_value
+        description: "{{ doc('column_status_value') }}"
+      - name: temperature_c
+        description: "{{ doc('column_temperature_c') }}"
+      - name: speed_units_per_min
+        description: "{{ doc('column_speed_units_per_min') }}"
+      - name: vibration_mm_s
+        description: "{{ doc('column_vibration_mm_s') }}"
+      - name: product_count
+        description: "{{ doc('column_product_count') }}"
+      - name: cycle_duration_seconds
+        description: "{{ doc('column_cycle_duration_seconds') }}"
+      - name: error_code
+        description: "{{ doc('column_error_code') }}"
+      - name: source_ingested_at
+        description: "{{ doc('column_source_ingested_at') }}"
+      - name: load_date
+        description: "{{ doc('column_load_date') }}"
+        tests:
+          - not_null
+      - name: _loaded_at
+        description: "{{ doc('column_loaded_at') }}"
+        tests:
+          - not_null
+

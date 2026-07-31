@@ -5,43 +5,104 @@ models:
     description: "{{ doc('table_dim_machine_status') }}"
     columns:
       - name: machine_id
+        description: "{{ doc('column_machine_id') }}"
         tests:
           - unique
           - not_null
+      - name: machine_type
+        description: "{{ doc('column_machine_type') }}"
+      - name: status_value
+        description: "{{ doc('column_status_value') }}"
+        tests:
+          - accepted_values:
+              values: ['RUNNING', 'IDLE', 'STOPPED', 'MAINTENANCE', 'ERROR']
+      - name: plant_location
+        description: "{{ doc('column_plant_location') }}"
+      - name: firmware_version
+        description: "{{ doc('column_firmware_version') }}"
+      - name: status_since
+        description: "{{ doc('column_status_since') }}"
+        tests:
+          - not_null
+      - name: latest_temperature_c
+        description: "{{ doc('column_latest_temperature_c') }}"
+      - name: latest_temperature_at
+        description: "{{ doc('column_latest_temperature_at') }}"
+      - name: latest_speed_units_per_min
+        description: "{{ doc('column_latest_speed_units_per_min') }}"
+      - name: latest_speed_at
+        description: "{{ doc('column_latest_speed_at') }}"
+      - name: latest_vibration_mm_s
+        description: "{{ doc('column_latest_vibration_mm_s') }}"
+      - name: latest_vibration_at
+        description: "{{ doc('column_latest_vibration_at') }}"
 
   - name: dim_machine_status_history
     description: "{{ doc('table_dim_machine_status_history') }}"
     columns:
       - name: machine_sk
+        description: "{{ doc('column_machine_sk') }}"
         tests:
           - unique
           - not_null
       - name: machine_id
+        description: "{{ doc('column_machine_id') }}"
         tests:
           - not_null
+      - name: machine_type
+        description: "{{ doc('column_machine_type') }}"
+      - name: status_value
+        description: "{{ doc('column_status_value') }}"
+      - name: plant_location
+        description: "{{ doc('column_plant_location') }}"
+      - name: firmware_version
+        description: "{{ doc('column_firmware_version') }}"
+      - name: valid_from
+        description: "{{ doc('column_valid_from') }}"
+        tests:
+          - not_null
+      - name: valid_to
+        description: "{{ doc('column_valid_to') }}"
+      - name: is_current
+        description: "{{ doc('column_is_current') }}"
 
   - name: agg_machine_uptime_daily
     description: "{{ doc('table_agg_machine_uptime_daily') }}"
     columns:
       - name: machine_id
+        description: "{{ doc('column_machine_id') }}"
         tests:
           - not_null
+      - name: machine_type
+        description: "{{ doc('column_machine_type') }}"
       - name: event_date
+        description: "{{ doc('column_event_date') }}"
         tests:
           - not_null
+      - name: total_seconds
+        description: "{{ doc('column_total_seconds') }}"
+      - name: running_seconds
+        description: "{{ doc('column_running_seconds') }}"
+      - name: down_seconds
+        description: "{{ doc('column_down_seconds') }}"
+      - name: idle_seconds
+        description: "{{ doc('column_idle_seconds') }}"
       - name: pct_running
+        description: "{{ doc('column_pct_running') }}"
         tests:
           - dbt_expectations.expect_column_values_to_be_between:
               min_value: 0
               max_value: 100
               row_condition: "pct_running is not null"
       - name: pct_down
+        description: "{{ doc('column_pct_down') }}"
         tests:
           - dbt_expectations.expect_column_values_to_be_between:
               min_value: 0
               max_value: 100
               row_condition: "pct_down is not null"
       - name: pct_idle
+        description: "{{ doc('column_pct_idle') }}"
         tests:
           - dbt_expectations.expect_column_values_to_be_between:
               min_value: 0
@@ -57,32 +118,75 @@ models:
     description: "{{ doc('table_agg_machine_type_performance') }}"
     columns:
       - name: machine_type
+        description: "{{ doc('column_machine_type') }}"
         tests:
           - not_null
       - name: event_date
+        description: "{{ doc('column_event_date') }}"
         tests:
           - not_null
+      - name: avg_temperature_c
+        description: "{{ doc('column_avg_temperature_c') }}"
+      - name: avg_speed_units_per_min
+        description: "{{ doc('column_avg_speed_units_per_min') }}"
+      - name: avg_vibration_mm_s
+        description: "{{ doc('column_avg_vibration_mm_s') }}"
+      - name: temperature_reading_count
+        description: "{{ doc('column_temperature_reading_count') }}"
+      - name: speed_reading_count
+        description: "{{ doc('column_speed_reading_count') }}"
+      - name: vibration_reading_count
+        description: "{{ doc('column_vibration_reading_count') }}"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - machine_type
+            - event_date
 
   - name: agg_error_analysis
     description: "{{ doc('table_agg_error_analysis') }}"
     columns:
       - name: machine_type
+        description: "{{ doc('column_machine_type') }}"
         tests:
           - not_null
       - name: severity
+        description: "{{ doc('column_severity') }}"
         tests:
           - accepted_values:
               values: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+      - name: error_count
+        description: "{{ doc('column_error_count') }}"
+        tests:
+          - not_null
+      - name: avg_resolution_time_seconds
+        description: "{{ doc('column_avg_resolution_time_seconds') }}"
+      - name: maintenance_required_count
+        description: "{{ doc('column_maintenance_required_count') }}"
 
   - name: agg_production_output
     description: "{{ doc('table_agg_production_output') }}"
     columns:
       - name: machine_id
+        description: "{{ doc('column_machine_id') }}"
         tests:
           - not_null
+      - name: machine_type
+        description: "{{ doc('column_machine_type') }}"
       - name: event_date
+        description: "{{ doc('column_event_date') }}"
         tests:
           - not_null
+      - name: total_product_count
+        description: "{{ doc('column_total_product_count') }}"
+      - name: cycle_start_count
+        description: "{{ doc('column_cycle_start_count') }}"
+      - name: cycle_complete_count
+        description: "{{ doc('column_cycle_complete_count') }}"
+      - name: cycle_product_count
+        description: "{{ doc('column_cycle_product_count') }}"
+      - name: avg_cycle_duration_seconds
+        description: "{{ doc('column_avg_cycle_duration_seconds') }}"
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
@@ -93,19 +197,33 @@ models:
     description: "{{ doc('table_agg_event_frequency_minute') }}"
     columns:
       - name: machine_id
+        description: "{{ doc('column_machine_id') }}"
         tests:
           - not_null
       - name: event_type_code
+        description: "{{ doc('column_event_type_code') }}"
         tests:
           - not_null
       - name: bucket_start
+        description: "{{ doc('column_bucket_start') }}"
         tests:
           - not_null
       - name: event_count
+        description: "{{ doc('column_event_count') }}"
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
               min_value: 1
+      - name: first_event_timestamp
+        description: "{{ doc('column_first_event_timestamp') }}"
+      - name: last_event_timestamp
+        description: "{{ doc('column_last_event_timestamp') }}"
+      - name: timestamp_of_min_value
+        description: "{{ doc('column_timestamp_of_min_value') }}"
+      - name: timestamp_of_max_value
+        description: "{{ doc('column_timestamp_of_max_value') }}"
+      - name: avg_seconds_between_events
+        description: "{{ doc('column_avg_seconds_between_events') }}"
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
@@ -117,19 +235,33 @@ models:
     description: "{{ doc('table_agg_event_frequency_hour') }}"
     columns:
       - name: machine_id
+        description: "{{ doc('column_machine_id') }}"
         tests:
           - not_null
       - name: event_type_code
+        description: "{{ doc('column_event_type_code') }}"
         tests:
           - not_null
       - name: bucket_start
+        description: "{{ doc('column_bucket_start') }}"
         tests:
           - not_null
       - name: event_count
+        description: "{{ doc('column_event_count') }}"
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
               min_value: 1
+      - name: first_event_timestamp
+        description: "{{ doc('column_first_event_timestamp') }}"
+      - name: last_event_timestamp
+        description: "{{ doc('column_last_event_timestamp') }}"
+      - name: timestamp_of_min_value
+        description: "{{ doc('column_timestamp_of_min_value') }}"
+      - name: timestamp_of_max_value
+        description: "{{ doc('column_timestamp_of_max_value') }}"
+      - name: avg_seconds_between_events
+        description: "{{ doc('column_avg_seconds_between_events') }}"
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
@@ -141,19 +273,33 @@ models:
     description: "{{ doc('table_agg_event_frequency_day') }}"
     columns:
       - name: machine_id
+        description: "{{ doc('column_machine_id') }}"
         tests:
           - not_null
       - name: event_type_code
+        description: "{{ doc('column_event_type_code') }}"
         tests:
           - not_null
       - name: bucket_start
+        description: "{{ doc('column_bucket_start') }}"
         tests:
           - not_null
       - name: event_count
+        description: "{{ doc('column_event_count') }}"
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
               min_value: 1
+      - name: first_event_timestamp
+        description: "{{ doc('column_first_event_timestamp') }}"
+      - name: last_event_timestamp
+        description: "{{ doc('column_last_event_timestamp') }}"
+      - name: timestamp_of_min_value
+        description: "{{ doc('column_timestamp_of_min_value') }}"
+      - name: timestamp_of_max_value
+        description: "{{ doc('column_timestamp_of_max_value') }}"
+      - name: avg_seconds_between_events
+        description: "{{ doc('column_avg_seconds_between_events') }}"
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:

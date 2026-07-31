@@ -3,12 +3,12 @@ checks for silver_dim_machines:
   - duplicate_count(machine_sk) = 0
 
   - failed rows:
-      name: valid_from freshness within the synthetic 3-month window
+      name: valid_from freshness within the synthetic 5-day window
       fail query: |
         select machine_sk
         from silver_dim_machines
         where valid_from < timestamp('2026-04-01')
-           or valid_from > timestamp('2026-07-01')
+           or valid_from > timestamp('2026-04-06')
 
   - failed rows:
       name: no overlapping SCD2 periods per machine_id

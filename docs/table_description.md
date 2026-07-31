@@ -11,31 +11,31 @@ Raw seed table containing fault/error reference codes and attributes.
 {% enddocs %}
 
 {% docs table_raw_device_events %}
-Raw seed fact table with one row per emitted machine event across the synthetic time window.
+Raw seed fact table with one row per emitted machine event, delivered as five simulated daily gateway loads identified by load_date.
 {% enddocs %}
 
 {% docs table_bronze_machines %}
-Bronze incremental model with cleaned machine dimension rows from the raw seed.
+Bronze append-only landing table for the machine dimension; every load re-appends the seed, so machine_id may repeat.
 {% enddocs %}
 
 {% docs table_bronze_event_types %}
-Bronze incremental model with cleaned event type dimension rows from the raw seed.
+Bronze append-only landing table for the event type catalog; every load re-appends the seed, so event_type_code may repeat.
 {% enddocs %}
 
 {% docs table_bronze_error_codes %}
-Bronze incremental model with cleaned error code dimension rows from the raw seed.
+Bronze append-only landing table for the error code catalog; every load re-appends the seed, so error_code may repeat.
 {% enddocs %}
 
 {% docs table_bronze_device_events %}
-Bronze incremental fact model with deduplicated and cleaned machine events.
+Bronze append-only landing table for machine events, typed and stamped but not cleaned; duplicate event_ids and null machine_ids are expected here and resolved in silver.
 {% enddocs %}
 
 {% docs table_silver_dim_machines %}
-Silver SCD2 dimension table tracking machine status history and current state.
+Silver SCD2 dimension tracking machine status history and current state, built from deduplicated bronze machine and STATUS_CHANGE rows.
 {% enddocs %}
 
 {% docs table_silver_fact_device_events %}
-Silver conformed event fact table with standardized attributes and event_value.
+Silver conformed event fact table: deduplicated on event_id, quarantined of null machine_ids, enriched with dimension attributes and a generic event_value.
 {% enddocs %}
 
 {% docs table_silver_fact_error_events %}
